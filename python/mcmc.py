@@ -53,8 +53,10 @@ def metropolis_hastings(x_init, proposal, prior, log_likelihood, data,
         raise Exception('burn_in must be between 0 and 1')
     
     x = x_init  # set x0
+    
+    burn_in_idx = int(samples * burn_in)
 
-    for _ in range(1, samples):
+    for i in range(1, samples):
 
         # generate a random candidate state with the given the proposal function
         x_cand = proposal(x, **proposal_kwargs)
@@ -65,7 +67,8 @@ def metropolis_hastings(x_init, proposal, prior, log_likelihood, data,
         if a >= 0:  # 0 instead of 1 because we took the log of the acceptance ratio
 
             x = x_cand
-            accepted.append(x_cand)
+            if i >= burn_in_idx:
+                accepted.append(x_cand)
 
         else:
 
@@ -74,15 +77,17 @@ def metropolis_hastings(x_init, proposal, prior, log_likelihood, data,
             if u < np.exp(a):  # need to convert back to probability (vs log probability)
 
                 x = x_cand
-                accepted.append(x_cand)
+                if i >= burn_in_idx:
+                    accepted.append(x_cand)
 
             else:
-
-                rejected.append(x_cand)
+                
+                if i >= burn_in_idx:
+                    rejected.append(x_cand)
     
     # convert to numpy and remove burn_in
-    accepted = np.array(accepted)[int(samples * burn_in):]
-    rejected = np.array(rejected)[int(samples * burn_in):]
+    accepted = np.array(accepted)
+    rejected = np.array(rejected)
 
     return accepted, rejected  # return samples
 
