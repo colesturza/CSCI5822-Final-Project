@@ -1,72 +1,88 @@
 import numpy as np
 
 
-def metropolis_hastings(x_init, samples, proposal, acceptance):
+def metropolis_hastings(x_init, proposal, prior, log_likelihood, data,
+                        proposal_kwargs=None, samples=10000, burn_in=0.0):
     """ Algorithm 27.3 Metropolis-Hastings MCMC sampling from
-    David Barber's Bayesian Reasoning and Machine Learning
+    David Barber's Bayesian Reasoning and Machine Learning.
+    
+    Modified to use log of acceptance ratio for numerical stability.
 
-    :param x_init: array-like or int, float
+    :param x_init: numpy.ndarray or int, float
         The initial state.
-    :param samples: int
-        The number of samples to take.
     :param proposal: callable(x)
         The proposal distribution function.
-    :param acceptance: callable(x, x_prime)
-        The acceptance distribution function.
-    :return: numpy.ndarray
-        The samples taken.
-        If x_init is a int or float a 1 dimensional array will be returned.
-        If x_init is a numpy.ndarray or list a 2 dimensional array will be
+    :param prior: callable(x)
+        The prior distribution function.
+    :param log_likelihood: callable(x, data)
+        The likelihood function for x given the data. 
+        Should be the log of the likelihood for numerical 
+        stability.
+    :param data: array_like
+        Data used to determine the likelihood of parameters.
+    :param proposal_kwargs: dict
+        Keyword arguments for proposal function. Default is None.
+    :param samples: int
+        The number of samples to take. Default is 10000.
+    :param burn_in: float
+        The percentage of samples from the beginning to 
+        remove. Must be a float between 0 and 1. 
+        0 is equivalent to removing no samples and 1 is equivalent
+        to removing them all.
+    :return: numpy.ndarray, numpy.ndarray
+        The samples taken. The first array is the accepted samples and the
+            second is the rejected samples.
+        If x_init is a int or float a 1 dimensional arrays will be returned.
+        If x_init is a numpy.ndarray or list a 2 dimensional arrays will be
             returned. The fist dimension contains the samples, and the
             second each element of all the sampled states.
     """
 
-    # initialize array to store samples
-    if isinstance(x_init, np.ndarray):
+    if proposal_kwargs is None:
+        proposal_kwargs = dict()
 
-        if x_init.ndim > 1:
-            raise Exception('x_init must be a one dimensional array')
+    rejected = []
+    accepted = []
+    
+    if samples < 1:
+        
+        raise Exception('samples must be greater than 0')
+        
+    if burn_in < 0 or burn_in > 1:
+        
+        raise Exception('burn_in must be between 0 and 1')
+    
+    x = x_init  # set x0
 
-        n = x_init.shape[0]
+    for _ in range(1, samples):
 
-        x = np.array((samples, n), dtype=np.float64)
+        # generate a random candidate state with the given the proposal function
+        x_cand = proposal(x, **proposal_kwargs)
+        
+        # compute acceptance ratio
+        a = log_likelihood(x_cand, data) + np.log(prior(x_cand)) - log_likelihood(x, data) - np.log(prior(x))
 
-    elif isinstance(x_init, list):
+        if a >= 0:  # 0 instead of 1 because we took the log of the acceptance ratio
 
-        n = len(x_init)
-
-        x = np.array((samples, n), dtype=np.float64)
-
-    elif isinstance(x_init, (int, float)):
-
-        x = np.array(samples, dtype=np.float64)
-
-    else:
-
-        raise Exception('x_init must be a numeric type, list, or numpy.ndarray')
-
-    x[0] = x_init  # set x0
-
-    for l in range(1, samples):
-
-        x_cand = proposal(x[l - 1])  # generate a random candidate state with the given the proposal function
-
-        a = acceptance(x[l - 1], x_cand)  # Calculate the acceptance probability
-
-        if a >= 1:
-
-            x[l] = x_cand
+            x = x_cand
+            accepted.append(x_cand)
 
         else:
 
             u = np.random.uniform(0, 1)  # draw a random value u uniformly from the unit interval [0, 1]
 
-            if u < a:
+            if u < np.exp(a):  # need to convert back to probability (vs log probability)
 
-                x[l] = x_cand
+                x = x_cand
+                accepted.append(x_cand)
 
             else:
 
-                x[l] = x[l - 1]
+                rejected.append(x_cand)
+    
+    # convert to numpy and remove burn_in
+    accepted = np.array(accepted)[int(samples * burn_in):]
+    rejected = np.array(rejected)[int(samples * burn_in):]
 
-    return x  # return samples
+    return accepted, rejected  # return samples
+
