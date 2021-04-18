@@ -42,12 +42,6 @@ def metropolis_hastings(x_init, proposal, log_prior, log_likelihood, data,
         :rtype: numpy.ndarray, int, or float
         """
         return log_likelihood(beta, data) + log_prior(beta)
-
-    if proposal_kwargs is None:
-        proposal_kwargs = dict()
-
-    rejected = []
-    accepted = []
     
     if isinstance(x_init, np.ndarray):
 
@@ -61,6 +55,12 @@ def metropolis_hastings(x_init, proposal, log_prior, log_likelihood, data,
     if burn_in < 0 or burn_in > 1:
         
         raise Exception('burn_in must be between 0 and 1')
+    
+    if proposal_kwargs is None:
+        proposal_kwargs = dict()
+    
+    rejected = []
+    accepted = []
     
     x = x_init
     
