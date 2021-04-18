@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def metropolis_hastings(x_init, proposal, prior, log_likelihood, data,
+def metropolis_hastings(x_init, proposal, log_prior, log_likelihood, data,
                         proposal_kwargs=None, samples=10000, burn_in=0.0):
     """ Algorithm 27.3 Metropolis-Hastings MCMC sampling from
     David Barber's Bayesian Reasoning and Machine Learning.
@@ -12,8 +12,10 @@ def metropolis_hastings(x_init, proposal, prior, log_likelihood, data,
         The initial state.
     :param proposal: callable(x)
         The proposal distribution function.
-    :param prior: callable(x)
+    :param log_prior: callable(x)
         The prior distribution function.
+        Should be the log of the prior for numerical
+        stability.
     :param log_likelihood: callable(x, data)
         The likelihood function for x given the data. 
         Should be the log of the likelihood for numerical 
@@ -38,6 +40,15 @@ def metropolis_hastings(x_init, proposal, prior, log_likelihood, data,
             second each element of all the sampled states.
     """
 
+    def posterior(beta):
+        """ Computes the posterior of a given parameter beta.
+
+        :param beta: array_like or int, float
+            The parameter to compute the posterior for.
+        :return: array_like or int, float
+        """
+        return log_likelihood(beta, data) + log_prior(beta)
+
     if proposal_kwargs is None:
         proposal_kwargs = dict()
 
@@ -59,35 +70,34 @@ def metropolis_hastings(x_init, proposal, prior, log_likelihood, data,
     for i in range(1, samples):
 
         # generate a random candidate state with the given the proposal function
-        x_cand = proposal(x, **proposal_kwargs)
+        x_candidate = proposal(x, **proposal_kwargs)
         
         # compute acceptance ratio
-        a = log_likelihood(x_cand, data) + np.log(prior(x_cand)) - log_likelihood(x, data) - np.log(prior(x))
+        a = np.exp(posterior(x_candidate) - posterior(x))
 
-        if a >= 0:  # 0 instead of 1 because we took the log of the acceptance ratio
+        if a >= 1:
 
-            x = x_cand
+            x = x_candidate
             if i >= burn_in_idx:
-                accepted.append(x_cand)
+                accepted.append(x_candidate)
 
         else:
 
             u = np.random.uniform(0, 1)  # draw a random value u uniformly from the unit interval [0, 1]
 
-            if u < np.exp(a):  # need to convert back to probability (vs log probability)
+            if u < a:  # need to convert back to probability (vs log probability)
 
-                x = x_cand
+                x = x_candidate
                 if i >= burn_in_idx:
-                    accepted.append(x_cand)
+                    accepted.append(x_candidate)
 
             else:
                 
                 if i >= burn_in_idx:
-                    rejected.append(x_cand)
+                    rejected.append(x_candidate)
     
     # convert to numpy and remove burn_in
     accepted = np.array(accepted)
     rejected = np.array(rejected)
 
     return accepted, rejected  # return samples
-
