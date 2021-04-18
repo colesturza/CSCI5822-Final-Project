@@ -49,6 +49,11 @@ def metropolis_hastings(x_init, proposal, log_prior, log_likelihood, data,
     rejected = []
     accepted = []
     
+    if isinstance(x_init, np.ndarray):
+
+        if x_init.ndim > 1:
+            raise Exception('x_init must be a one dimensional array')
+    
     if samples < 1:
         
         raise Exception('samples must be greater than 0')
