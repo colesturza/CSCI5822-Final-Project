@@ -7,7 +7,7 @@ Our project aims to take a Bayesian Inference approach to creating a model to pr
 ## About this Repo
 This repo contains the report and presentation slides of our final project for CSCI 5822: Probabilistic Models of Human and Machine Intelligence at CU Boulder. The code can be found under the python directory.
 
-## Refernces
+## References
 [1]    David Barber. _Bayesian reasoning and machine learning_. Cambridge University Press,2012, pp. 559–560.
 
 [2]    Dheeru Dua and Casey Graff. _UCI Machine Learning Repository_. 2017. url: http://archive.ics.uci.edu/ml.
