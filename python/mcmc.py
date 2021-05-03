@@ -29,8 +29,8 @@ def metropolis_hastings(x_init, proposal, log_prior, log_likelihood, data,
     :return: The samples taken. The first array is the accepted samples and the second is the rejected samples.
         If x_init is a int or float a 1 dimensional arrays will be returned. If x_init is a numpy.ndarray or list a
         2 dimensional arrays will be returned. The fist dimension contains the samples, and the second
-        each element of all the sampled states.
-    :rtype: numpy.ndarray, numpy.ndarray
+        each element of all the sampled states. Also, returns the acceptance rate.
+    :rtype: numpy.ndarray, numpy.ndarray, float
     """
 
     def posterior(beta):
@@ -98,5 +98,7 @@ def metropolis_hastings(x_init, proposal, log_prior, log_likelihood, data,
     # convert to numpy
     accepted = np.array(accepted)
     rejected = np.array(rejected)
+    
+    acceptance_rate = accepted.shape[0]/rejected.shape[0]
 
-    return accepted, rejected
+    return accepted, rejected, acceptance_rate
